@@ -1,50 +1,53 @@
 #include "Arduboy.h"
-#include <unistd.h>
 
 // global Arduboy instance
 
 Arduboy arduboy;
 
-// game variables
-
-int16_t x, y;
-
 // define frame rate
 
 #define FRAME_RATE 24
-
-// define rectangle size
-
-#define RECT_WIDTH 2
-
-#define RECT_HEIGHT 2
 
 // define draw color
 
 #define COLOR WHITE
 
-// define max values for x and y
+// Frogger bitmap
 
-#define XMAX (WIDTH - RECT_WIDTH - 1)
-
-#define YMAX (HEIGHT - RECT_HEIGHT - 1)
-
-
-struct obstacle {
-
-  int X_MIN;
-  int X_MAX;
-  int type;            // index in array of bitmaps
-
-};
-
-  // frog bitmap
-
-  const uint8_t PROGMEM frog[] = {0x46, 0x20, 0xCF, 0x30, 0x56, 0xA0, 0x7F, 0xE0, 
+  const uint8_t PROGMEM frogger_bitmap[] = {0x46, 0x20, 0xCF, 0x30, 0x56, 0xA0, 0x7F, 0xE0, 
   0x1F, 0x80, 0x1F, 0x80, 0x17, 0x80, 0x77, 0xE0, 
   0x5B, 0xA0, 0x4F, 0x20, 0xE6, 0x70, 0x40, 0x20, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+// struct definition for frogger
+
+typedef struct frogger_t {
+
+  int x;
+  int y;
+  int h = 12;
+  int w = 12;
+  const uint8_t PROGMEM *bitmap = frogger_bitmap;
+} Frogger;
+
+// struct definition for obstacles
+// acts as linked list node
+typedef struct obstacle_t {
+
+  int x_min;      // x coordinate of left of obstacle
+  int x_max;      // x coordinate of right of obstacle
+  struct obstacle_t *next; // pointer to next obstacle
+} Obstacle;
+
+// struct definition for obstacle row
+// acts as linked list
+struct obstacle_row_t {
+
+  int y;          // position on screen
+  int row_speed;  // positive or negative indicates direction
+  int type;       // index of bitmap in bitmap array
+  Obstacle *head; // pointer to head obstacle (closest to going offscreen)
+} Row;
 
   // racecar bitmap
 
@@ -58,11 +61,11 @@ struct obstacle {
   // van bitmap
 
   const uint8_t PROGMEM van[] = {0x1E, 0x1C, 0x00, 0x7F, 0x7F, 0x00, 0xB1, 0xF1, 
-0xC0, 0xE1, 0xE1, 0xC0, 0xE3, 0xE1, 0x80, 0xE1, 
-0xE1, 0x80, 0xE1, 0xE1, 0x80, 0xE3, 0xE1, 0x80, 
-0xE1, 0xE1, 0xC0, 0xB1, 0xF1, 0xC0, 0x7F, 0x7F, 
-0x00, 0x1E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  0xC0, 0xE1, 0xE1, 0xC0, 0xE3, 0xE1, 0x80, 0xE1, 
+  0xE1, 0x80, 0xE1, 0xE1, 0x80, 0xE3, 0xE1, 0x80, 
+  0xE1, 0xE1, 0xC0, 0xB1, 0xF1, 0xC0, 0x7F, 0x7F, 
+  0x00, 0x1E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
   // short_truck bitmap
 
@@ -84,16 +87,11 @@ struct obstacle {
   0x80, 0x01, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00};
 
+  // array of bitmap types
+  const uint8_t PROGMEM * const bitmaps[] = {racecar, van, short_truck, long_truck};
 
-struct obstacle_row {
-
-  int Y;
-  int row_speed; // positive for negative
-  
-};
-
-
-
+  // instantiate Frogger
+  Frogger frogger;
 
 void setup() {
 
@@ -105,12 +103,9 @@ void setup() {
 
   arduboy.setFrameRate(FRAME_RATE);
 
-  // set x and y to the middle of the screen
-
-  x = (WIDTH/2) - (RECT_WIDTH/2);
-
-  y = (HEIGHT/2) - (RECT_HEIGHT/2);
-
+  // set Frogger initial position
+  frogger.x = WIDTH/2;
+  frogger.y = HEIGHT-frogger.h;
 }
 
 void loop() {
@@ -118,33 +113,33 @@ void loop() {
   
   // move 1 pixel to the right if the right button is pressed
 
-  if(arduboy.pressed(RIGHT_BUTTON) && (x < XMAX)) {
+  if(arduboy.pressed(RIGHT_BUTTON) && (frogger.x < WIDTH - 2*frogger.w)) {
 
-    x++;
+    frogger.x += 12;
 
   }
 
   // move 1 pixel to the left if the left button is pressed
 
-  if(arduboy.pressed(LEFT_BUTTON) && (x > 0)) {
+  if(arduboy.pressed(LEFT_BUTTON) && (frogger.x > frogger.w)) {
 
-    x--;
+    frogger.x -= 12;
 
   }
 
   // move 1 pixel up if the up button is pressed
 
-  if(arduboy.pressed(UP_BUTTON) && (y > 0)) {
+  if(arduboy.pressed(UP_BUTTON) && (frogger.y > frogger.h)) {
 
-    y -= 12;
+    frogger.y -= 12;
 
   }
 
   // move 1 pixel down if the down button is pressed
 
-  if(arduboy.pressed(DOWN_BUTTON) && (y < YMAX)) {
+  if(arduboy.pressed(DOWN_BUTTON) && (frogger.y < HEIGHT - 2*frogger.h)) {
 
-    y += 12;
+    frogger.y += 12;
 
   }
 
@@ -154,22 +149,15 @@ void loop() {
 
   // reset x and y
 
-  arduboy.setCursor(x, y);
-
-  // draw rounded rectangle at position (x, y)
-
-  //arduboy.drawRect(x, y, RECT_WIDTH, RECT_HEIGHT, COLOR);
+  arduboy.setCursor(frogger.x, frogger.y);
 
   // draw car bitmap
 
-  arduboy.drawSlowXYBitmap(x,y, frog, 12, 12, COLOR);
+  arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
 
   // display buffer items on screen
 
   arduboy.display();
-
-  
-
 }
 
 
