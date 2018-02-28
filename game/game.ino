@@ -12,6 +12,10 @@ Arduboy arduboy;
 
 #define COLOR WHITE
 
+int button_pressed = 0; // checking if button has been pressed in order to create delay
+uint8_t last_button = 0;    // marks which button was pressed last: 1=right, 2=left, 3=up, 4=down
+
+
 // Frogger bitmap
 
   const uint8_t PROGMEM frogger_bitmap[] = {0x46, 0x20, 0xCF, 0x30, 0x56, 0xA0, 0x7F, 0xE0, 
@@ -51,7 +55,7 @@ struct obstacle_row_t {
 
   // racecar bitmap
 
-  const uint8_t PROGMEM racecar[] = {0x1E, 0x1C, 0x00, 0x7F, 0x7F, 0x00, 0xB1, 0xF1, 
+  const uint8_t PROGMEM racecar_bitmap[] = {0x1E, 0x1C, 0x00, 0x7F, 0x7F, 0x00, 0xB1, 0xF1, 
   0xC0, 0xE1, 0xE1, 0xC0, 0xE3, 0xE1, 0x80, 0xE1, 
   0xE1, 0x80, 0xE1, 0xE1, 0x80, 0xE3, 0xE1, 0x80, 
   0xE1, 0xE1, 0xC0, 0xB1, 0xF1, 0xC0, 0x7F, 0x7F, 
@@ -60,7 +64,7 @@ struct obstacle_row_t {
 
   // van bitmap
 
-  const uint8_t PROGMEM van[] = {0x1E, 0x1C, 0x00, 0x7F, 0x7F, 0x00, 0xB1, 0xF1, 
+  const uint8_t PROGMEM van_bitmap[] = {0x1E, 0x1C, 0x00, 0x7F, 0x7F, 0x00, 0xB1, 0xF1, 
   0xC0, 0xE1, 0xE1, 0xC0, 0xE3, 0xE1, 0x80, 0xE1, 
   0xE1, 0x80, 0xE1, 0xE1, 0x80, 0xE3, 0xE1, 0x80, 
   0xE1, 0xE1, 0xC0, 0xB1, 0xF1, 0xC0, 0x7F, 0x7F, 
@@ -69,7 +73,7 @@ struct obstacle_row_t {
 
   // short_truck bitmap
 
-  const uint8_t PROGMEM short_truck[] = {0x38, 0x0E, 0x00, 0xFF, 0xFF, 0x80, 0x80, 0x00, 
+  const uint8_t PROGMEM short_truck_bitmap[] = {0x38, 0x0E, 0x00, 0xFF, 0xFF, 0x80, 0x80, 0x00, 
   0xF8, 0x80, 0x00, 0xCC, 0xFF, 0xFF, 0xD3, 0x80, 
   0x00, 0xD3, 0x80, 0x00, 0xD3, 0xFF, 0xFF, 0xD3, 
   0x80, 0x00, 0xCC, 0x80, 0x00, 0xF8, 0xFF, 0xFF, 
@@ -77,7 +81,7 @@ struct obstacle_row_t {
 
   // long_truck bitmap
 
-  const uint8_t PROGMEM long_truck[] = {0x3B, 0x80, 0x01, 0xC0, 0x00, 0xFF, 0xFF, 0xFF, 
+  const uint8_t PROGMEM long_truck_bitmap[] = {0x3B, 0x80, 0x01, 0xC0, 0x00, 0xFF, 0xFF, 0xFF, 
   0xE0, 0x00, 0x80, 0x00, 0x00, 0x27, 0x80, 0x80, 
   0x00, 0x00, 0x3C, 0xC0, 0xFF, 0xFF, 0xFF, 0xFD, 
   0x30, 0x80, 0x00, 0x00, 0x25, 0x30, 0x80, 0x00, 
@@ -88,7 +92,7 @@ struct obstacle_row_t {
   0x00};
 
   // array of bitmap types
-  const uint8_t PROGMEM * const bitmaps[] = {racecar, van, short_truck, long_truck};
+  const uint8_t PROGMEM * const bitmaps[] = {racecar_bitmap, van_bitmap, short_truck_bitmap, long_truck_bitmap};
 
   // instantiate Frogger
   Frogger frogger;
@@ -110,39 +114,73 @@ void setup() {
 
 void loop() {
 
+  if(button_pressed) {
+
+//   switch(last_button) {
+//      case 1:
+//        if (arduboy.notPressed(RIGHT_BUTTON)) {
+//          button_pressed = 0;
+//        }
+//      case 2:
+//        if (arduboy.notPressed(LEFT_BUTTON)) {
+//          button_pressed = 0;
+//        }
+//      case 3:
+//        if (arduboy.notPressed(UP_BUTTON)) {
+//          button_pressed = 0;
+//        }
+//      case 4:
+//        if (arduboy.notPressed(DOWN_BUTTON)) {
+//          button_pressed = 0;
+//        }
+//    };
+
+    if(arduboy.notPressed(last_button)) {
+      button_pressed = 0;
+    }
+  } else {
   
-  // move 1 pixel to the right if the right button is pressed
-
-  if(arduboy.pressed(RIGHT_BUTTON) && (frogger.x < WIDTH - 2*frogger.w)) {
-
-    frogger.x += 12;
-
+    // move 1 pixel to the right if the right button is pressed
+  
+    if(arduboy.pressed(RIGHT_BUTTON) && (frogger.x < WIDTH - 2*frogger.w)) {
+  
+      frogger.x += 12;
+      button_pressed = 1;
+      last_button = RIGHT_BUTTON;
+  
+    }
+  
+    // move 1 pixel to the left if the left button is pressed
+  
+    if(arduboy.pressed(LEFT_BUTTON) && (frogger.x > frogger.w)) {
+  
+      frogger.x -= 12;
+      button_pressed = 1;
+      last_button = LEFT_BUTTON;
+  
+    }
+  
+    // move 1 pixel up if the up button is pressed
+  
+    if(arduboy.pressed(UP_BUTTON) && (frogger.y > frogger.h)) {
+  
+      frogger.y -= 12;
+      button_pressed = 1;
+      last_button = UP_BUTTON;
+  
+    }
+  
+    // move 1 pixel down if the down button is pressed
+  
+    if(arduboy.pressed(DOWN_BUTTON) && (frogger.y < HEIGHT - frogger.h)) {
+  
+      frogger.y += 12;
+      button_pressed = 1;
+      last_button = DOWN_BUTTON;
+  
+    }
   }
-
-  // move 1 pixel to the left if the left button is pressed
-
-  if(arduboy.pressed(LEFT_BUTTON) && (frogger.x > frogger.w)) {
-
-    frogger.x -= 12;
-
-  }
-
-  // move 1 pixel up if the up button is pressed
-
-  if(arduboy.pressed(UP_BUTTON) && (frogger.y > frogger.h)) {
-
-    frogger.y -= 12;
-
-  }
-
-  // move 1 pixel down if the down button is pressed
-
-  if(arduboy.pressed(DOWN_BUTTON) && (frogger.y < HEIGHT - 2*frogger.h)) {
-
-    frogger.y += 12;
-
-  }
-
+  
   // clear screen
 
   arduboy.clear();
@@ -151,7 +189,7 @@ void loop() {
 
   arduboy.setCursor(frogger.x, frogger.y);
 
-  // draw car bitmap
+  // draw frogger bitmap
 
   arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
 
