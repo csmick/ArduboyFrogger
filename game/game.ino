@@ -106,7 +106,7 @@ Obstacle racecar2{32, 18, &racecar1};
 Obstacle racecar3{80, 18, &racecar2};
 Row racecar_row{24, 2, 0, &racecar3, &racecar1};
 
-void loop_obstacle(Row *r) {
+void loop_row(Row *r) {
   r->tail->next = r->head;
   r->head = r->head->next;
   r->tail = r->tail->next;
@@ -117,17 +117,18 @@ void move_obstacles(Row *r) {
   Obstacle *curr = r->head;
   while(curr) {
     curr->x_min += r->row_speed;
+    curr = curr->next;
   }
   if(r->row_speed < 0) {
     if(r->head->x_min + r->head->w < 0) {
       r->head->x_min = 128;
-      loop_obstacle(r);
+      loop_row(r);
     }
   }
   else if(r->row_speed > 0) {
     if(r->head->x_min > WIDTH) {
       r->head->x_min = -r->head->w;
-      loop_obstacle(r);
+      loop_row(r);
     }
   }
 }
@@ -192,6 +193,10 @@ void loop() {
       last_button = DOWN_BUTTON;
     }
   }
+
+  // move racecar row
+  
+  move_obstacles(&racecar_row);
   
   // clear screen
 
@@ -205,9 +210,13 @@ void loop() {
 
   arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
 
-  // move racecar row
-  
-  //move_obstacles(&racecar_row);
+  // draw row
+
+  Obstacle *curr = racecar_row.head;
+  while(curr) {
+    arduboy.drawSlowXYBitmap(curr->x_min, racecar_row.y, bitmaps[racecar_row.bitmap], curr->w, 12, COLOR);
+    curr = curr->next;
+  }
 
   // display buffer items on screen
 
