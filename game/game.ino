@@ -12,6 +12,8 @@ Arduboy arduboy;
 
 #define COLOR WHITE
 
+// declare program variables
+
 int button_pressed = 0; // checking if button has been pressed in order to create delay
 uint8_t last_button = 0;    // marks which button was pressed last: 1=right, 2=left, 3=up, 4=down
 
@@ -38,19 +40,20 @@ typedef struct frogger_t {
 // acts as linked list node
 typedef struct obstacle_t {
 
-  int x_min;      // x coordinate of left of obstacle
-  int x_max;      // x coordinate of right of obstacle
+  int x_min;               // x coordinate of left of obstacle
+  int w;                   // width of the obstacle
   struct obstacle_t *next; // pointer to next obstacle
 } Obstacle;
 
 // struct definition for obstacle row
 // acts as linked list
-struct obstacle_row_t {
+typedef struct obstacle_row_t {
 
   int y;          // position on screen
   int row_speed;  // positive or negative indicates direction
-  int type;       // index of bitmap in bitmap array
+  int bitmap;     // index of bitmap in bitmap array
   Obstacle *head; // pointer to head obstacle (closest to going offscreen)
+  Obstacle *tail; // pointer to tail obstacle (furthest from going off screen)
 } Row;
 
   // racecar bitmap
@@ -91,11 +94,43 @@ struct obstacle_row_t {
   0x80, 0x01, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00};
 
-  // array of bitmap types
-  const uint8_t PROGMEM * const bitmaps[] = {racecar_bitmap, van_bitmap, short_truck_bitmap, long_truck_bitmap};
+// array of bitmap types
+const uint8_t PROGMEM * const bitmaps[] = {racecar_bitmap, van_bitmap, short_truck_bitmap, long_truck_bitmap};
 
-  // instantiate Frogger
-  Frogger frogger;
+// instantiate Frogger
+Frogger frogger;
+
+// create row of racecars
+Obstacle racecar1{0, 18, NULL};
+Obstacle racecar2{32, 18, &racecar1};
+Obstacle racecar3{80, 18, &racecar2};
+Row racecar_row{24, 2, 0, &racecar3, &racecar1};
+
+void loop_obstacle(Row *r) {
+  r->tail->next = r->head;
+  r->head = r->head->next;
+  r->tail = r->tail->next;
+  r->tail->next = NULL; 
+}
+
+void move_obstacles(Row *r) {
+  Obstacle *curr = r->head;
+  while(curr) {
+    curr->x_min += r->row_speed;
+  }
+  if(r->row_speed < 0) {
+    if(r->head->x_min + r->head->w < 0) {
+      r->head->x_min = 128;
+      loop_obstacle(r);
+    }
+  }
+  else if(r->row_speed > 0) {
+    if(r->head->x_min > WIDTH) {
+      r->head->x_min = -r->head->w;
+      loop_obstacle(r);
+    }
+  }
+}
 
 void setup() {
 
@@ -115,30 +150,11 @@ void setup() {
 void loop() {
 
   if(button_pressed) {
-
-//   switch(last_button) {
-//      case 1:
-//        if (arduboy.notPressed(RIGHT_BUTTON)) {
-//          button_pressed = 0;
-//        }
-//      case 2:
-//        if (arduboy.notPressed(LEFT_BUTTON)) {
-//          button_pressed = 0;
-//        }
-//      case 3:
-//        if (arduboy.notPressed(UP_BUTTON)) {
-//          button_pressed = 0;
-//        }
-//      case 4:
-//        if (arduboy.notPressed(DOWN_BUTTON)) {
-//          button_pressed = 0;
-//        }
-//    };
-
     if(arduboy.notPressed(last_button)) {
       button_pressed = 0;
     }
-  } else {
+  }
+  else {
   
     // move 1 pixel to the right if the right button is pressed
   
@@ -147,7 +163,6 @@ void loop() {
       frogger.x += 12;
       button_pressed = 1;
       last_button = RIGHT_BUTTON;
-  
     }
   
     // move 1 pixel to the left if the left button is pressed
@@ -157,7 +172,6 @@ void loop() {
       frogger.x -= 12;
       button_pressed = 1;
       last_button = LEFT_BUTTON;
-  
     }
   
     // move 1 pixel up if the up button is pressed
@@ -167,7 +181,6 @@ void loop() {
       frogger.y -= 12;
       button_pressed = 1;
       last_button = UP_BUTTON;
-  
     }
   
     // move 1 pixel down if the down button is pressed
@@ -177,7 +190,6 @@ void loop() {
       frogger.y += 12;
       button_pressed = 1;
       last_button = DOWN_BUTTON;
-  
     }
   }
   
@@ -193,9 +205,12 @@ void loop() {
 
   arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
 
+  // move racecar row
+  
+  //move_obstacles(&racecar_row);
+
   // display buffer items on screen
 
   arduboy.display();
 }
-
 
