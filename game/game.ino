@@ -33,6 +33,7 @@ typedef struct frogger_t {
   int y;
   int h = 12;
   int w = 12;
+  int row;                                       // which row Frogger is in
   const uint8_t PROGMEM *bitmap = frogger_bitmap;
 } Frogger;
 
@@ -104,7 +105,7 @@ Frogger frogger;
 Obstacle racecar1{0, 18, NULL};
 Obstacle racecar2{32, 18, &racecar1};
 Obstacle racecar3{80, 18, &racecar2};
-Row racecar_row{24, 1, 0, &racecar3, &racecar1};
+Row racecar_row{40, 1, 0, &racecar3, &racecar1};
 
 void loop_row(Row *r) {
   r->tail->next = r->head;
@@ -133,6 +134,22 @@ void move_obstacles(Row *r) {
   }
 }
 
+void detect_collisions(Row r, Frogger *frogger) {
+
+  Obstacle * curr = r.head;
+
+  while(curr) {
+    if ((curr->x_min < frogger->x && (curr->x_min + curr->w) > frogger->x) || (curr->x_min < (frogger->x + frogger->w) && (curr->x_min + curr->w) > (frogger->x + frogger->w))) {
+        // set Frogger initial position
+        frogger->x = WIDTH/2;
+        frogger->y = HEIGHT-frogger->h;
+        frogger->row = 0;  
+    }
+    curr = curr->next;
+  }
+  
+}
+
 void setup() {
 
   // initialize arduboy
@@ -146,6 +163,7 @@ void setup() {
   // set Frogger initial position
   frogger.x = WIDTH/2;
   frogger.y = HEIGHT-frogger.h;
+  frogger.row = 0;
 }
 
 void loop() {
@@ -180,7 +198,8 @@ void loop() {
     // move 1 pixel up if the up button is pressed
   
     if(arduboy.pressed(UP_BUTTON) && (frogger.y > frogger.h)) {
-  
+
+      frogger.row += 1;
       frogger.y -= 12;
       button_pressed = 1;
       last_button = UP_BUTTON;
@@ -189,7 +208,8 @@ void loop() {
     // move 1 pixel down if the down button is pressed
   
     if(arduboy.pressed(DOWN_BUTTON) && (frogger.y < HEIGHT - frogger.h)) {
-  
+
+      frogger.row -= 1;
       frogger.y += 12;
       button_pressed = 1;
       last_button = DOWN_BUTTON;
@@ -199,6 +219,8 @@ void loop() {
   // move racecar row
   if(arduboy.everyXFrames(2)) {
     move_obstacles(&racecar_row);
+    if (frogger.row == 1)
+      detect_collisions(racecar_row, &frogger);
   }
   
   // clear screen
