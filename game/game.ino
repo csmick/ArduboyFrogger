@@ -41,7 +41,7 @@ typedef struct frogger_t {
 // acts as linked list node
 typedef struct obstacle_t {
 
-  int x_min;               // x coordinate of left of obstacle
+  int x;               // x coordinate of left of obstacle
   int w;                   // width of the obstacle
   struct obstacle_t *next; // pointer to next obstacle
 } Obstacle;
@@ -107,6 +107,15 @@ Obstacle racecar2{32, 18, &racecar1};
 Obstacle racecar3{80, 18, &racecar2};
 Row racecar_row{40, 1, 0, &racecar3, &racecar1};
 
+// create row of long trucks
+Obstacle long_truck1{6, 36, NULL};
+Obstacle long_truck2{64, 36, &long_truck1};
+Row long_truck_row{28, 2, 3, &long_truck2, &long_truck1};
+
+// create array of rows
+
+Row rows[] = {racecar_row, long_truck_row};
+
 void loop_row(Row *r) {
   r->tail->next = r->head;
   r->head = r->head->next;
@@ -117,18 +126,18 @@ void loop_row(Row *r) {
 void move_obstacles(Row *r) {
   Obstacle *curr = r->head;
   while(curr) {
-    curr->x_min += r->row_speed;
+    curr->x += r->row_speed;
     curr = curr->next;
   }
   if(r->row_speed < 0) {
-    if(r->head->x_min + r->head->w < 0) {
-      r->head->x_min = 128;
+    if(r->head->x + r->head->w < 0) {
+      r->head->x = 128;
       loop_row(r);
     }
   }
   else if(r->row_speed > 0) {
-    if(r->head->x_min > WIDTH) {
-      r->head->x_min = -r->head->w;
+    if(r->head->x > WIDTH) {
+      r->head->x = -r->head->w;
       loop_row(r);
     }
   }
@@ -139,11 +148,11 @@ void detect_collisions(Row r, Frogger *frogger) {
   Obstacle * curr = r.head;
 
   while(curr) {
-    if ((curr->x_min < frogger->x && (curr->x_min + curr->w) > frogger->x) || (curr->x_min < (frogger->x + frogger->w) && (curr->x_min + curr->w) > (frogger->x + frogger->w))) {
+    if ((curr->x < frogger->x && (curr->x + curr->w) > frogger->x) || (curr->x < (frogger->x + frogger->w) && (curr->x + curr->w) > (frogger->x + frogger->w))) {
         // set Frogger initial position
         frogger->x = WIDTH/2;
         frogger->y = HEIGHT-frogger->h;
-        frogger->row = 0;  
+        frogger->row = -1;  
     }
     curr = curr->next;
   }
@@ -163,7 +172,7 @@ void setup() {
   // set Frogger initial position
   frogger.x = WIDTH/2;
   frogger.y = HEIGHT-frogger.h;
-  frogger.row = 0;
+  frogger.row = -1;
 }
 
 void loop() {
@@ -216,11 +225,13 @@ void loop() {
     }
   }
 
-  // move racecar row
+  // move rows
   if(arduboy.everyXFrames(2)) {
     move_obstacles(&racecar_row);
-    if (frogger.row == 1)
-      detect_collisions(racecar_row, &frogger);
+    move_obstacles(&long_truck_row);
+    if(frogger.row < sizeof(rows)/sizeof(Row)) {
+      detect_collisions(rows[frogger.row], &frogger);
+    }    
   }
   
   // clear screen
@@ -239,7 +250,13 @@ void loop() {
 
   Obstacle *curr = racecar_row.head;
   while(curr) {
-    arduboy.drawSlowXYBitmap(curr->x_min, racecar_row.y, racecar_bitmap, 18, 12, COLOR);
+    arduboy.drawSlowXYBitmap(curr->x, racecar_row.y, racecar_bitmap, 18, 12, COLOR);
+    curr = curr->next;
+  }
+
+  curr = long_truck_row.head;
+  while(curr) {
+    arduboy.drawSlowXYBitmap(curr->x, long_truck_row.y, long_truck_bitmap, 36, 12, COLOR);
     curr = curr->next;
   }
 
