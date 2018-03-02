@@ -108,9 +108,15 @@ Obstacle racecar3{80, 18, &racecar2};
 Row racecar_row{40, 1, 0, &racecar3, &racecar1};
 
 // create row of long trucks
-Obstacle long_truck1{6, 36, NULL};
-Obstacle long_truck2{64, 36, &long_truck1};
-Row long_truck_row{28, 2, 3, &long_truck2, &long_truck1};
+Obstacle long_truck1{64, 36, NULL};
+Obstacle long_truck2{6, 36, &long_truck1};
+Row long_truck_row{28, -3, 3, &long_truck2, &long_truck1};
+
+// create row of short trucks
+Obstacle short_truck1{12, 24, NULL};
+Obstacle short_truck2{46, 24, &short_truck1};
+Obstacle short_truck3{100, 24, &short_truck2};
+Row short_truck_row{16, 2, 2, &short_truck3, &short_truck1};
 
 Obstacle short_truck1{12, 24, NULL};
 Obstacle short_truck2{46, 24, &short_truck1};
@@ -119,7 +125,7 @@ Row short_truck_row{16, 2, 2, &short_truck3, &short_truck1};
 
 // create array of rows
 
-Row rows[] = {racecar_row, long_truck_row};
+Row rows[] = {racecar_row, long_truck_row, short_truck_row};
 
 void loop_row(Row *r) {
   r->tail->next = r->head;
@@ -252,7 +258,7 @@ void loop() {
 
   arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
 
-  // draw row
+  // draw rows
 
   Obstacle *curr = racecar_row.head;
   while(curr) {
