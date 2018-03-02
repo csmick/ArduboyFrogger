@@ -112,6 +112,11 @@ Obstacle long_truck1{6, 36, NULL};
 Obstacle long_truck2{64, 36, &long_truck1};
 Row long_truck_row{28, 2, 3, &long_truck2, &long_truck1};
 
+Obstacle short_truck1{12, 24, NULL};
+Obstacle short_truck2{46, 24, &short_truck1};
+Obstacle short_truck3{100, 24, &short_truck2};
+Row short_truck_row{16, 2, 2, &short_truck3, &short_truck1};
+
 // create array of rows
 
 Row rows[] = {racecar_row, long_truck_row};
@@ -229,6 +234,7 @@ void loop() {
   if(arduboy.everyXFrames(2)) {
     move_obstacles(&racecar_row);
     move_obstacles(&long_truck_row);
+    move_obstacles(&short_truck_row);
     if(frogger.row < sizeof(rows)/sizeof(Row)) {
       detect_collisions(rows[frogger.row], &frogger);
     }    
@@ -257,6 +263,12 @@ void loop() {
   curr = long_truck_row.head;
   while(curr) {
     arduboy.drawSlowXYBitmap(curr->x, long_truck_row.y, long_truck_bitmap, 36, 12, COLOR);
+    curr = curr->next;
+  }
+
+  curr = short_truck_row.head;
+  while(curr) {
+    arduboy.drawSlowXYBitmap(curr->x, short_truck_row.y, short_truck_bitmap, 24, 12, COLOR);
     curr = curr->next;
   }
 
