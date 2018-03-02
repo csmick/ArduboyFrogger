@@ -110,18 +110,13 @@ Row racecar_row{40, 1, 0, &racecar3, &racecar1};
 // create row of long trucks
 Obstacle long_truck1{64, 36, NULL};
 Obstacle long_truck2{6, 36, &long_truck1};
-Row long_truck_row{28, -3, 3, &long_truck2, &long_truck1};
+Row long_truck_row{26, -2, 3, &long_truck2, &long_truck1};
 
 // create row of short trucks
 Obstacle short_truck1{12, 24, NULL};
 Obstacle short_truck2{46, 24, &short_truck1};
 Obstacle short_truck3{100, 24, &short_truck2};
-Row short_truck_row{16, 2, 2, &short_truck3, &short_truck1};
-
-Obstacle short_truck1{12, 24, NULL};
-Obstacle short_truck2{46, 24, &short_truck1};
-Obstacle short_truck3{100, 24, &short_truck2};
-Row short_truck_row{16, 2, 2, &short_truck3, &short_truck1};
+Row short_truck_row{12, 2, 2, &short_truck3, &short_truck1};
 
 // create array of rows
 
@@ -220,7 +215,7 @@ void loop() {
     if(arduboy.pressed(UP_BUTTON) && (frogger.y > frogger.h)) {
 
       frogger.row += 1;
-      frogger.y -= 12;
+      frogger.y -= 13;
       button_pressed = 1;
       last_button = UP_BUTTON;
     }
@@ -230,7 +225,7 @@ void loop() {
     if(arduboy.pressed(DOWN_BUTTON) && (frogger.y < HEIGHT - frogger.h)) {
 
       frogger.row -= 1;
-      frogger.y += 12;
+      frogger.y += 13;
       button_pressed = 1;
       last_button = DOWN_BUTTON;
     }
