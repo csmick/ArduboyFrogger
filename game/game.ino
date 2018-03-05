@@ -16,6 +16,7 @@ Arduboy arduboy;
 
 int button_pressed = 0; // checking if button has been pressed in order to create delay
 uint8_t last_button = 0;    // marks which button was pressed last: 1=right, 2=left, 3=up, 4=down
+int lives = -1;         //When lives = -1, it implies title screen
 
 
 // Frogger bitmap
@@ -149,20 +150,21 @@ void move_obstacles(Row *r) {
   }
 }
 
-void detect_collisions(Row r, Frogger *frogger) {
+int detect_collisions(Row r, Frogger *frogger) {
 
   Obstacle * curr = r.head;
-
+  int collision = 0;
   while(curr) {
-    if ((curr->x < frogger->x && (curr->x + curr->w) > frogger->x) || (curr->x < (frogger->x + frogger->w) && (curr->x + curr->w) > (frogger->x + frogger->w))) {
-        // set Frogger initial position
-        frogger->x = WIDTH/2;
-        frogger->y = HEIGHT-frogger->h;
-        frogger->row = -1;  
+    if ((curr->x < frogger->x && (curr->x + curr->w) > frogger->x) || (curr->x < (frogger->x + frogger->w) && (curr->x + curr->w) > (frogger->x + frogger->w))) {       // set Frogger initial position
+      frogger->x = WIDTH/2;
+      frogger->y = HEIGHT-frogger->h;
+      frogger->row = -1;
+      collision = 1;
+      break;   
     }
     curr = curr->next;
   }
-  
+  return collision;
 }
 
 void setup() {
@@ -179,10 +181,11 @@ void setup() {
   frogger.x = WIDTH/2;
   frogger.y = HEIGHT-frogger.h;
   frogger.row = -1;
+  lives = -1;
 }
 
+int count = 0;
 void loop() {
-
   if (!arduboy.nextFrame()) return;
 
   if(button_pressed) {
@@ -190,6 +193,7 @@ void loop() {
       button_pressed = 0;
     }
   }
+  
   else {
   
     // move 1 pixel to the right if the right button is pressed
@@ -232,49 +236,72 @@ void loop() {
   }
 
   // move rows
-  if(arduboy.everyXFrames(2)) {
-    move_obstacles(&racecar_row);
-    move_obstacles(&long_truck_row);
-    move_obstacles(&short_truck_row);
-    if(frogger.row < sizeof(rows)/sizeof(Row)) {
-      detect_collisions(rows[frogger.row], &frogger);
-    }    
-  }
+  if (lives > 0){
+    if(arduboy.everyXFrames(2)) {
+      move_obstacles(&racecar_row);
+      move_obstacles(&long_truck_row);
+      move_obstacles(&short_truck_row);
+      if(frogger.row < sizeof(rows)/sizeof(Row)) {
+        if(lives > 0) {
+          lives -= detect_collisions(rows[frogger.row], &frogger);
+        }
+      }
   
-  // clear screen
-
-  arduboy.clear();
-
-  // reset x and y
-
-  arduboy.setCursor(frogger.x, frogger.y);
-
-  // draw frogger bitmap
-
-  arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
-
-  // draw rows
-
-  Obstacle *curr = racecar_row.head;
-  while(curr) {
-    arduboy.drawSlowXYBitmap(curr->x, racecar_row.y, racecar_bitmap, 18, 12, COLOR);
-    curr = curr->next;
+      // clear screen
+      arduboy.clear();
+      arduboy.setCursor(0, 54);
+      arduboy.print("Lives: ");
+      arduboy.setCursor(36, 54);
+      arduboy.print(lives);
+      // reset x and y
+  
+      arduboy.setCursor(frogger.x, frogger.y);
+  
+      // draw frogger bitmap
+  
+      arduboy.drawSlowXYBitmap(frogger.x, frogger.y, frogger.bitmap, 12, 12, COLOR);
+  
+      // draw rows
+  
+      Obstacle *curr = racecar_row.head;
+      while(curr) {
+        arduboy.drawSlowXYBitmap(curr->x, racecar_row.y, racecar_bitmap, 18, 12, COLOR);
+        curr = curr->next;
+      }
+  
+     curr = long_truck_row.head;
+      while(curr) {
+        arduboy.drawSlowXYBitmap(curr->x, long_truck_row.y, long_truck_bitmap, 36, 12, COLOR);
+        curr = curr->next;
+      }
+  
+      curr = short_truck_row.head;
+      while(curr) {
+        arduboy.drawSlowXYBitmap(curr->x, short_truck_row.y, short_truck_bitmap, 24, 12, COLOR);
+        curr = curr->next;
+      }
+    }
+  } else if (lives == -1) {
+    arduboy.clear();
+    arduboy.setCursor(20, 30);
+    arduboy.print("Title Screen Here");
+    count++;
+    if (count > 60) {
+      count = 0;
+      lives = 3;
+    }
+  } else {
+    arduboy.clear();
+    arduboy.setCursor(40, 30);
+    arduboy.print("You Lose");
+    count++;
+    if (count > 60) {
+      count = 0;
+      lives = -1;
+    }
   }
-
-  curr = long_truck_row.head;
-  while(curr) {
-    arduboy.drawSlowXYBitmap(curr->x, long_truck_row.y, long_truck_bitmap, 36, 12, COLOR);
-    curr = curr->next;
-  }
-
-  curr = short_truck_row.head;
-  while(curr) {
-    arduboy.drawSlowXYBitmap(curr->x, short_truck_row.y, short_truck_bitmap, 24, 12, COLOR);
-    curr = curr->next;
-  }
-
   // display buffer items on screen
-
+  
   arduboy.display();
 }
 
